@@ -213,3 +213,30 @@ select * from (values
   ('평상', 8, 10, 60000, 60000, 80000, 80000, 100000, 100000, 7)
 ) as seed(room_name, capacity_base, capacity_max, off_weekday, off_weekend, peak_weekday, peak_weekend, superpeak_weekday, superpeak_weekend, sort_order)
 where not exists (select 1 from price_table_rows);
+
+-- 짧은 텍스트 설정값 저장용 (예: 요금 안내 표 하단 입/퇴실 안내 문구)
+create table if not exists site_settings (
+  key text primary key,
+  value text
+);
+
+alter table site_settings enable row level security;
+
+drop policy if exists "site settings publicly readable" on site_settings;
+create policy "site settings publicly readable"
+  on site_settings for select
+  using (true);
+
+drop policy if exists "site settings insert via server" on site_settings;
+create policy "site settings insert via server"
+  on site_settings for insert
+  with check (true);
+
+drop policy if exists "site settings update via server" on site_settings;
+create policy "site settings update via server"
+  on site_settings for update
+  using (true) with check (true);
+
+insert into site_settings (key, value)
+values ('price_table_note', '※ 입실 15:00 / 퇴실 11:00, 인원 추가 시 1인당 추가요금이 발생합니다. 정확한 예약 가능 여부는 전화로 문의해 주세요.')
+on conflict (key) do nothing;

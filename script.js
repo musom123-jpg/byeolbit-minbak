@@ -121,6 +121,18 @@ inquiryForm.addEventListener('submit', async (e) => {
     .join('');
 })();
 
+// 요금 안내 표 하단 입/퇴실 안내 문구
+(async function loadPriceTableNote() {
+  const { data, error } = await supabaseClient
+    .from('site_settings')
+    .select('value')
+    .eq('key', 'price_table_note')
+    .maybeSingle();
+
+  if (error || !data || !data.value) return;
+  document.getElementById('priceTableNote').textContent = data.value;
+})();
+
 // 갤러리: 관리자가 등록한 사진이 있으면 대체하고, 없으면 "사진 준비중" 플레이스홀더를 유지합니다.
 (async function loadGallery() {
   const grid = document.getElementById('galleryGrid');

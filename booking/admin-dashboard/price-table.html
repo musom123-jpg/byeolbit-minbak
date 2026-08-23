@@ -116,6 +116,50 @@
   .row-msg { font-size: 0.75rem; min-height: 1.1em; }
   .row-msg.ok { color: #2a8a4a; }
   .row-msg.err { color: #d64545; }
+
+  .note-wrap {
+    margin-top: 28px;
+    background: #fff;
+    border: 1px solid #e3e3e3;
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    max-width: 640px;
+  }
+  .note-wrap label {
+    display: block;
+    font-size: 0.82rem;
+    color: #666;
+    margin-bottom: 8px;
+  }
+  .note-wrap textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    resize: vertical;
+  }
+  .note-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+  }
+  .note-actions button {
+    background: var(--navy);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 18px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  .note-actions button:hover { background: #1b2a45; }
+  .note-msg { font-size: 0.78rem; }
+  .note-msg.ok { color: #2a8a4a; }
+  .note-msg.err { color: #d64545; }
 </style>
 </head>
 <body>
@@ -151,6 +195,15 @@
   </div>
   <div class="add-row-wrap">
     <button id="addRowBtn">행 추가</button>
+  </div>
+
+  <div class="note-wrap">
+    <label for="noteInput">입/퇴실 안내 문구 (표 아래에 표시됩니다)</label>
+    <textarea id="noteInput" rows="2"></textarea>
+    <div class="note-actions">
+      <button id="noteSaveBtn">문구 저장</button>
+      <span class="note-msg" id="noteMsg"></span>
+    </div>
   </div>
 </main>
 
@@ -241,7 +294,39 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
   location.href = '/booking/admin/login';
 });
 
+async function loadNote() {
+  const res = await fetch('/booking/api/admin/settings/price_table_note');
+  if (res.status === 401) {
+    location.href = '/booking/admin/login';
+    return;
+  }
+  const data = await res.json();
+  $('#noteInput').value = data.value || '';
+}
+
+$('#noteSaveBtn').addEventListener('click', async () => {
+  const msg = $('#noteMsg');
+  msg.textContent = '';
+  msg.className = 'note-msg';
+
+  try {
+    const res = await fetch('/booking/api/admin/settings/price_table_note', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: $('#noteInput').value })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '저장 실패');
+    msg.textContent = '저장되었습니다.';
+    msg.classList.add('ok');
+  } catch (err) {
+    msg.textContent = err.message;
+    msg.classList.add('err');
+  }
+});
+
 load();
+loadNote();
 </script>
 </body>
 </html>

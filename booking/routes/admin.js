@@ -302,4 +302,34 @@ router.delete('/inquiries/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
+// 텍스트 설정값 조회 (예: 요금 안내 표 하단 입/퇴실 안내 문구)
+router.get('/settings/:key', async (req, res) => {
+  const { data, error } = await supabase
+    .from('site_settings')
+    .select('value')
+    .eq('key', req.params.key)
+    .maybeSingle();
+
+  if (error) {
+    console.error(error);
+    return res.status(500).json({ error: '설정값을 불러오지 못했습니다.' });
+  }
+  res.json({ key: req.params.key, value: data ? data.value : '' });
+});
+
+// 텍스트 설정값 저장
+router.put('/settings/:key', async (req, res) => {
+  const { data, error } = await supabase
+    .from('site_settings')
+    .upsert({ key: req.params.key, value: String(req.body.value ?? '') })
+    .select()
+    .single();
+
+  if (error) {
+    console.error(error);
+    return res.status(500).json({ error: '설정값을 저장하지 못했습니다.' });
+  }
+  res.json(data);
+});
+
 module.exports = router;
