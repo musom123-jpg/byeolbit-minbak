@@ -33,21 +33,42 @@ router.get('/reservations', async (req, res) => {
   res.json(reservations);
 });
 
-// 예약 상태 변경 (관리자가 가예약 취소 등을 처리할 때 사용)
-router.patch('/reservations/:id/status', async (req, res) => {
-  const { status } = req.body;
-  if (!['PENDING', 'PAID', 'CANCELLED'].includes(status)) {
-    return res.status(400).json({ error: '잘못된 상태 값입니다.' });
+// 예약 수정 (관리자가 상태 변경/선입금 금액 기록 등을 처리할 때 사용)
+router.patch('/reservations/:id', async (req, res) => {
+  const patch = {};
+
+  if (req.body.status !== undefined) {
+    if (!['PENDING', 'PAID', 'CANCELLED'].includes(req.body.status)) {
+      return res.status(400).json({ error: '잘못된 상태 값입니다.' });
+    }
+    patch.status = req.body.status;
+  }
+
+  if (req.body.deposit_amount !== undefined) {
+    const raw = req.body.deposit_amount;
+    if (raw === null || raw === '') {
+      patch.deposit_amount = null;
+    } else {
+      const n = Number(raw);
+      if (!Number.isFinite(n) || n < 0) {
+        return res.status(400).json({ error: '선입금 금액은 0 이상의 숫자여야 합니다.' });
+      }
+      patch.deposit_amount = n;
+    }
+  }
+
+  if (Object.keys(patch).length === 0) {
+    return res.status(400).json({ error: '수정할 값이 없습니다.' });
   }
 
   const { error } = await supabase
     .from('reservations')
-    .update({ status })
+    .update(patch)
     .eq('id', req.params.id);
 
   if (error) {
     console.error(error);
-    return res.status(500).json({ error: '상태 변경에 실패했습니다.' });
+    return res.status(500).json({ error: '예약 정보를 저장하지 못했습니다.' });
   }
   res.json({ ok: true });
 });

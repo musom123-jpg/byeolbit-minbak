@@ -177,6 +177,16 @@
   table.list button:hover { background: #ddd; }
   .empty { padding: 24px; text-align: center; color: #888; }
   .memo-cell { white-space: normal; max-width: 200px; color: #666; font-size: 0.82rem; }
+  .deposit-input {
+    width: 90px;
+    padding: 5px 7px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.82rem;
+    margin-right: 4px;
+  }
+  .row-actions { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
 </style>
 </head>
 <body>
@@ -209,7 +219,7 @@
       <thead>
         <tr>
           <th>객실</th><th>체크인</th><th>체크아웃</th><th>예약자</th><th>연락처</th>
-          <th>인원</th><th>금액</th><th>상태</th><th>요청사항</th><th></th>
+          <th>인원</th><th>금액</th><th>선입금</th><th>상태</th><th>요청사항</th><th></th>
         </tr>
       </thead>
       <tbody id="reservationListBody"></tbody>
@@ -286,7 +296,7 @@ function statusBadge(status) {
 function renderList(reservations) {
   const body = $('#reservationListBody');
   if (!reservations.length) {
-    body.innerHTML = '<tr><td colspan="10" class="empty">이번 달 예약이 없습니다.</td></tr>';
+    body.innerHTML = '<tr><td colspan="11" class="empty">이번 달 예약이 없습니다.</td></tr>';
     return;
   }
 
@@ -302,17 +312,72 @@ function renderList(reservations) {
         <td><a href="tel:${r.guest_phone}">${r.guest_phone}</a></td>
         <td>${r.guests}인</td>
         <td>${Number(r.total_price).toLocaleString('ko-KR')}원</td>
+        <td>
+          <input type="number" min="0" step="1000" class="deposit-input" value="${r.deposit_amount ?? ''}" placeholder="0">
+          <button data-action="save-deposit" data-id="${r.id}">저장</button>
+        </td>
         <td>${statusBadge(r.status)}</td>
         <td class="memo-cell">${r.memo || ''}</td>
-        <td>${r.status !== 'CANCELLED' ? `<button data-action="cancel" data-id="${r.id}">취소</button>` : ''}</td>
+        <td class="row-actions">
+          ${r.status === 'PENDING' ? `<button data-action="mark-paid" data-id="${r.id}">결제완료로 변경</button>` : ''}
+          ${r.status === 'PAID' ? `<button data-action="mark-pending" data-id="${r.id}">가예약으로 되돌리기</button>` : ''}
+          ${r.status !== 'CANCELLED' ? `<button data-action="cancel" data-id="${r.id}">취소</button>` : ''}
+        </td>
       </tr>
     `)
     .join('');
 
+  body.querySelectorAll('button[data-action="save-deposit"]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const tr = btn.closest('tr');
+      const input = tr.querySelector('.deposit-input');
+      const value = input.value === '' ? null : Number(input.value);
+
+      const res = await fetch(`/booking/api/admin/reservations/${btn.dataset.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deposit_amount: value })
+      });
+      if (!res.ok) alert('선입금 금액 저장에 실패했습니다.');
+    });
+  });
+
+  body.querySelectorAll('button[data-action="mark-paid"]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('이 예약을 결제완료로 변경할까요?')) return;
+      const res = await fetch(`/booking/api/admin/reservations/${btn.dataset.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'PAID' })
+      });
+      if (res.ok) {
+        load();
+      } else {
+        alert('상태 변경에 실패했습니다.');
+      }
+    });
+  });
+
+  body.querySelectorAll('button[data-action="mark-pending"]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('이 예약을 다시 가예약 상태로 되돌릴까요?')) return;
+      const res = await fetch(`/booking/api/admin/reservations/${btn.dataset.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'PENDING' })
+      });
+      if (res.ok) {
+        load();
+      } else {
+        alert('상태 변경에 실패했습니다.');
+      }
+    });
+  });
+
   body.querySelectorAll('button[data-action="cancel"]').forEach((btn) => {
     btn.addEventListener('click', async () => {
       if (!confirm('이 예약을 취소 처리할까요? (날짜가 다시 예약 가능해집니다)')) return;
-      const res = await fetch(`/booking/api/admin/reservations/${btn.dataset.id}/status`, {
+      const res = await fetch(`/booking/api/admin/reservations/${btn.dataset.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'CANCELLED' })

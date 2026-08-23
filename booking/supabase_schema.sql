@@ -29,9 +29,12 @@ create table if not exists reservations (
   total_price integer not null,
   status text not null default 'PENDING' check (status in ('PENDING', 'PAID', 'CANCELLED')),
   payment_key text,
+  deposit_amount integer,
   memo text,
   created_at timestamptz not null default now()
 );
+
+alter table reservations add column if not exists deposit_amount integer;
 
 create index if not exists idx_reservations_room_dates on reservations (room_id, checkin, checkout);
 
