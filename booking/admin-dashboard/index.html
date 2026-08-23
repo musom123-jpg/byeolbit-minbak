@@ -187,6 +187,7 @@
     <button id="prevMonth">◀</button>
     <span id="monthLabel"></span>
     <button id="nextMonth">▶</button>
+    <button id="logoutBtn" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.4);">로그아웃</button>
   </div>
 </header>
 
@@ -227,11 +228,16 @@ function daysInMonth(d) { return new Date(d.getFullYear(), d.getMonth() + 1, 0).
 async function fetchReservations(from, to) {
   const res = await fetch(`/booking/api/admin/reservations?from=${from}&to=${to}`);
   if (res.status === 401) {
-    document.body.innerHTML = '<p style="padding:40px;text-align:center;">인증이 필요합니다. 페이지를 새로고침해서 다시 로그인해주세요.</p>';
+    location.href = '/booking/admin/login';
     throw new Error('unauthorized');
   }
   return res.json();
 }
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await fetch('/booking/api/admin/logout', { method: 'POST' });
+  location.href = '/booking/admin/login';
+});
 
 function overlaps(res, dayStr) {
   return res.checkin <= dayStr && res.checkout > dayStr;

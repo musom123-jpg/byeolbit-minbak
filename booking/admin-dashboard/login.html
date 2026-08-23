@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>관리자 로그인 | 별빛민박</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #101a2e;
+    --navy-deep: #0b1220;
+    --gold: #f2c14e;
+    --bg-alt: #f6f4ee;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Gowun Dodum", "Apple SD Gothic Neo", sans-serif;
+    background: var(--navy-deep);
+    color: #1c2233;
+  }
+  .card {
+    width: 340px;
+    max-width: 92vw;
+    background: #fff;
+    border-radius: 14px;
+    padding: 32px 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  }
+  h1 {
+    font-family: "Jua", sans-serif;
+    font-weight: normal;
+    font-size: 1.2rem;
+    color: var(--navy);
+    text-align: center;
+    margin: 0 0 24px;
+  }
+  label {
+    display: block;
+    font-size: 0.82rem;
+    color: #666;
+    margin-bottom: 6px;
+  }
+  input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    margin-bottom: 16px;
+    font-family: inherit;
+  }
+  input:focus { outline: none; border-color: var(--gold); }
+  button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background: var(--gold);
+    color: var(--navy-deep);
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  button:hover { background: #e0ac2f; }
+  button:disabled { opacity: 0.6; cursor: default; }
+  .error {
+    color: #d64545;
+    font-size: 0.82rem;
+    text-align: center;
+    margin-top: 12px;
+    min-height: 1.2em;
+  }
+</style>
+</head>
+<body>
+
+<form class="card" id="loginForm">
+  <h1>★ 별빛민박 관리자</h1>
+  <label for="username">아이디</label>
+  <input type="text" id="username" name="username" autocomplete="username" required>
+  <label for="password">비밀번호</label>
+  <input type="password" id="password" name="password" autocomplete="current-password" required>
+  <button type="submit" id="submitBtn">로그인</button>
+  <p class="error" id="errorMsg"></p>
+</form>
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('submitBtn');
+  const errorMsg = document.getElementById('errorMsg');
+  btn.disabled = true;
+  errorMsg.textContent = '';
+
+  try {
+    const res = await fetch('/booking/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value
+      })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      errorMsg.textContent = data.error || '로그인에 실패했습니다.';
+      btn.disabled = false;
+      return;
+    }
+
+    location.href = '/booking/admin/';
+  } catch (err) {
+    errorMsg.textContent = '로그인 중 오류가 발생했습니다.';
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
