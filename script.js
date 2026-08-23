@@ -45,6 +45,52 @@ inquiryForm.addEventListener('submit', async (e) => {
   inquiryForm.reset();
 });
 
+// 객실 안내: 관리자 페이지(객실 관리)에서 저장한 내용으로 카드를 채웁니다.
+(async function loadRooms() {
+  const grid = document.getElementById('roomGrid');
+  const { data, error } = await supabaseClient
+    .from('rooms')
+    .select('name, description, price_per_night, image_url')
+    .eq('is_active', true)
+    .order('id', { ascending: true });
+
+  if (error || !data || !data.length) return;
+
+  grid.innerHTML = '';
+  data.forEach(({ name, description, price_per_night, image_url }) => {
+    const card = document.createElement('div');
+    card.className = 'room-card';
+
+    if (image_url) {
+      const img = document.createElement('img');
+      img.src = image_url;
+      img.alt = name;
+      img.className = 'room-photo';
+      // 등록된 URL이 깨져 있으면(예: 예전 자리표시자 경로) 플레이스홀더로 대체
+      img.addEventListener('error', () => {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'ph-image';
+        placeholder.textContent = '사진 준비중';
+        img.replaceWith(placeholder);
+      });
+      card.appendChild(img);
+    } else {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'ph-image';
+      placeholder.textContent = '사진 준비중';
+      card.appendChild(placeholder);
+    }
+
+    card.insertAdjacentHTML('beforeend', `
+      <h3>${name}</h3>
+      <p>${description || ''}</p>
+      <p class="room-price">1박 ${Number(price_per_night).toLocaleString('ko-KR')}원~</p>
+    `);
+
+    grid.appendChild(card);
+  });
+})();
+
 // 갤러리: 관리자가 등록한 사진이 있으면 대체하고, 없으면 "사진 준비중" 플레이스홀더를 유지합니다.
 (async function loadGallery() {
   const grid = document.getElementById('galleryGrid');
