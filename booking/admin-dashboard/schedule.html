@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>예약 스케줄 관리 | 별빛민박</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #101a2e;
+    --navy-deep: #0b1220;
+    --gold: #f2c14e;
+    --bg-alt: #f6f4ee;
+    --pending: #f2a53d;
+    --paid: #3aa869;
+    --cancelled: #c8ccd4;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Gowun Dodum", "Apple SD Gothic Neo", sans-serif;
+    background: var(--bg-alt);
+    color: #1c2233;
+  }
+  header {
+    background: var(--navy-deep);
+    color: #fff;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  header h1 {
+    font-family: "Jua", sans-serif;
+    font-size: 1.25rem;
+    margin: 0;
+    font-weight: normal;
+  }
+  .month-nav {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .month-nav button {
+    background: var(--gold);
+    border: none;
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .month-nav span {
+    font-weight: 700;
+    min-width: 100px;
+    text-align: center;
+  }
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-bottom: 14px;
+    font-size: 0.85rem;
+    flex-wrap: wrap;
+  }
+  .legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .dot.pending { background: var(--pending); }
+  .dot.paid { background: var(--paid); }
+  .dot.cancelled { background: var(--cancelled); }
+
+  .grid-wrap {
+    overflow-x: auto;
+    background: #fff;
+    border-radius: var(--radius);
+    border: 1px solid #e3e3e3;
+    margin-bottom: 32px;
+  }
+  table.grid {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.78rem;
+  }
+  table.grid th, table.grid td {
+    border: 1px solid #eee;
+    padding: 0;
+    text-align: center;
+    height: 34px;
+  }
+  table.grid th {
+    background: var(--bg-alt);
+    font-weight: 700;
+    padding: 6px 2px;
+    font-size: 0.72rem;
+    white-space: nowrap;
+  }
+  table.grid th.weekend { color: #d1495b; }
+  table.grid td.room-name {
+    background: var(--bg-alt);
+    font-weight: 700;
+    padding: 6px 10px;
+    text-align: left;
+    white-space: nowrap;
+    position: sticky;
+    left: 0;
+  }
+  table.grid td.cell { min-width: 26px; cursor: default; }
+  .bar {
+    display: block;
+    width: 100%;
+    height: 100%;
+    font-size: 0.68rem;
+    color: #fff;
+    line-height: 34px;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .bar.pending { background: var(--pending); }
+  .bar.paid { background: var(--paid); }
+
+  .list-section h2 {
+    font-family: "Jua", sans-serif;
+    font-weight: normal;
+    font-size: 1.1rem;
+    color: var(--navy);
+    margin-bottom: 12px;
+  }
+  table.list {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid #e3e3e3;
+    font-size: 0.88rem;
+  }
+  table.list th, table.list td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+    white-space: nowrap;
+  }
+  table.list th {
+    background: var(--bg-alt);
+    color: var(--navy);
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    color: #fff;
+    font-size: 0.76rem;
+  }
+  .badge.pending { background: var(--pending); }
+  .badge.paid { background: var(--paid); }
+  .badge.cancelled { background: var(--cancelled); color: #555; }
+  table.list button {
+    border: none;
+    background: #eee;
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 0.78rem;
+  }
+  table.list button:hover { background: #ddd; }
+  .empty { padding: 24px; text-align: center; color: #888; }
+  .memo-cell { white-space: normal; max-width: 200px; color: #666; font-size: 0.82rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>★ 별빛민박 · 예약 스케줄</h1>
+  <div class="month-nav">
+    <button id="prevMonth">◀</button>
+    <span id="monthLabel"></span>
+    <button id="nextMonth">▶</button>
+    <a href="/booking/admin/" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.4);border-radius:8px;padding:6px 14px;font-weight:700;text-decoration:none;font-size:0.85rem;">관리자 홈</a>
+    <button id="logoutBtn" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.4);">로그아웃</button>
+  </div>
+</header>
+
+<main>
+  <div class="legend">
+    <span><span class="dot pending"></span>가예약 (전화 확인 대기)</span>
+    <span><span class="dot paid"></span>결제 완료</span>
+    <span><span class="dot cancelled"></span>취소됨 (목록에만 표시)</span>
+  </div>
+
+  <div class="grid-wrap">
+    <table class="grid" id="scheduleGrid"></table>
+  </div>
+
+  <section class="list-section">
+    <h2>이번 달 예약 목록</h2>
+    <table class="list" id="reservationList">
+      <thead>
+        <tr>
+          <th>객실</th><th>체크인</th><th>체크아웃</th><th>예약자</th><th>연락처</th>
+          <th>인원</th><th>금액</th><th>상태</th><th>요청사항</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="reservationListBody"></tbody>
+    </table>
+  </section>
+</main>
+
+<script>
+const $ = (sel) => document.querySelector(sel);
+let current = new Date();
+current.setDate(1);
+
+function pad(n) { return String(n).padStart(2, '0'); }
+function ymd(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+function daysInMonth(d) { return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); }
+
+async function fetchReservations(from, to) {
+  const res = await fetch(`/booking/api/admin/reservations?from=${from}&to=${to}`);
+  if (res.status === 401) {
+    location.href = '/booking/admin/login';
+    throw new Error('unauthorized');
+  }
+  return res.json();
+}
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await fetch('/booking/api/admin/logout', { method: 'POST' });
+  location.href = '/booking/admin/login';
+});
+
+function overlaps(res, dayStr) {
+  return res.checkin <= dayStr && res.checkout > dayStr;
+}
+
+function renderGrid(reservations, roomNames) {
+  const table = $('#scheduleGrid');
+  const nDays = daysInMonth(current);
+  const y = current.getFullYear(), m = current.getMonth();
+
+  let thead = '<tr><th>객실</th>';
+  for (let d = 1; d <= nDays; d++) {
+    const dow = new Date(y, m, d).getDay();
+    thead += `<th class="${dow === 0 || dow === 6 ? 'weekend' : ''}">${d}</th>`;
+  }
+  thead += '</tr>';
+
+  let body = '';
+  roomNames.forEach((room) => {
+    body += `<tr><td class="room-name">${room}</td>`;
+    for (let d = 1; d <= nDays; d++) {
+      const dayStr = `${y}-${pad(m + 1)}-${pad(d)}`;
+      const match = reservations.find(
+        (r) => r.room_name === room && r.status !== 'CANCELLED' && overlaps(r, dayStr)
+      );
+      if (match) {
+        const cls = match.status === 'PAID' ? 'paid' : 'pending';
+        body += `<td class="cell"><span class="bar ${cls}" title="${match.guest_name} · ${match.guest_phone} · ${match.checkin}~${match.checkout}">${match.guest_name}</span></td>`;
+      } else {
+        body += '<td class="cell"></td>';
+      }
+    }
+    body += '</tr>';
+  });
+
+  table.innerHTML = thead + body;
+}
+
+function statusBadge(status) {
+  const map = { PENDING: ['가예약', 'pending'], PAID: ['결제완료', 'paid'], CANCELLED: ['취소됨', 'cancelled'] };
+  const [label, cls] = map[status] || [status, ''];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function renderList(reservations) {
+  const body = $('#reservationListBody');
+  if (!reservations.length) {
+    body.innerHTML = '<tr><td colspan="10" class="empty">이번 달 예약이 없습니다.</td></tr>';
+    return;
+  }
+
+  body.innerHTML = reservations
+    .slice()
+    .sort((a, b) => a.checkin.localeCompare(b.checkin))
+    .map((r) => `
+      <tr data-id="${r.id}">
+        <td>${r.room_name || ''}</td>
+        <td>${r.checkin}</td>
+        <td>${r.checkout}</td>
+        <td>${r.guest_name}</td>
+        <td><a href="tel:${r.guest_phone}">${r.guest_phone}</a></td>
+        <td>${r.guests}인</td>
+        <td>${Number(r.total_price).toLocaleString('ko-KR')}원</td>
+        <td>${statusBadge(r.status)}</td>
+        <td class="memo-cell">${r.memo || ''}</td>
+        <td>${r.status !== 'CANCELLED' ? `<button data-action="cancel" data-id="${r.id}">취소</button>` : ''}</td>
+      </tr>
+    `)
+    .join('');
+
+  body.querySelectorAll('button[data-action="cancel"]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('이 예약을 취소 처리할까요? (날짜가 다시 예약 가능해집니다)')) return;
+      const res = await fetch(`/booking/api/admin/reservations/${btn.dataset.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'CANCELLED' })
+      });
+      if (res.ok) {
+        load();
+      } else {
+        alert('취소 처리에 실패했습니다.');
+      }
+    });
+  });
+}
+
+async function load() {
+  $('#monthLabel').textContent = `${current.getFullYear()}년 ${current.getMonth() + 1}월`;
+  const from = ymd(current);
+  const to = ymd(new Date(current.getFullYear(), current.getMonth() + 1, 0));
+
+  const [reservations, roomsRes] = await Promise.all([
+    fetchReservations(from, to),
+    fetch('/booking/api/rooms').then((r) => r.json())
+  ]);
+
+  const roomNames = roomsRes.map((r) => r.name);
+  renderGrid(reservations, roomNames);
+  renderList(reservations);
+}
+
+$('#prevMonth').addEventListener('click', () => {
+  current.setMonth(current.getMonth() - 1);
+  load();
+});
+$('#nextMonth').addEventListener('click', () => {
+  current.setMonth(current.getMonth() + 1);
+  load();
+});
+
+load();
+</script>
+</body>
+</html>

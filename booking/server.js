@@ -114,6 +114,9 @@ app.post('/booking/api/admin/logout', (req, res) => {
 app.get('/booking/admin/', requireAdminPage, (req, res) => {
   res.sendFile(path.join(ADMIN_DIR, 'index.html'));
 });
+app.get('/booking/admin/schedule', requireAdminPage, (req, res) => {
+  res.sendFile(path.join(ADMIN_DIR, 'schedule.html'));
+});
 app.get('/booking/admin/rooms', requireAdminPage, (req, res) => {
   res.sendFile(path.join(ADMIN_DIR, 'rooms.html'));
 });
