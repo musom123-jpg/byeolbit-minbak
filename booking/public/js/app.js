@@ -175,9 +175,12 @@ async function submitBooking(e) {
     }
 
     if (!tossPayments) {
-      alert('결제 모듈이 설정되지 않았습니다. .env 의 TOSS_CLIENT_KEY 를 확인해주세요.');
+      // 결제 연동 전: 예약(가예약)은 이미 저장되었으니, 결제 없이 접수 완료로 안내합니다.
+      alert(`예약이 접수되었습니다!\n예약번호: ${data.orderId}\n곧 전화로 연락드려 예약을 확정하겠습니다.`);
+      document.getElementById('bookingDialog').close();
       btn.disabled = false;
       btn.textContent = '결제하기';
+      currentSearch && (await renderRooms());
       return;
     }
 

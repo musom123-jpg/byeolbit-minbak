@@ -1,0 +1,10 @@
+{
+  "name": "byeolbit-minbak-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "별빛민박 홈페이지 + 예약 시스템 (Railway 배포용 진입점)",
+  "scripts": {
+    "postinstall": "npm install --prefix booking",
+    "start": "node booking/server.js"
+  }
+}

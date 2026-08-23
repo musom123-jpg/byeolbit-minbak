@@ -88,6 +88,8 @@ router.get('/by-order/:orderId', async (req, res) => {
 
 // PENDING 상태로 10분 이상 지난, 결제되지 않은 예약을 자동 정리(간단한 방식)
 // 서버 시작 시 + 5분마다 가볍게 청소
+// 주의: 결제(TOSS_CLIENT_KEY)가 아직 연결되지 않은 동안은 PENDING이 곧 "가예약(전화 확인 대기)" 상태이므로
+// 자동 삭제하지 않습니다. 결제 연동 후에는 정상적으로 10분 뒤 자동 정리됩니다.
 async function cleanupStalePending() {
   const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
   const { error } = await supabase
@@ -98,7 +100,12 @@ async function cleanupStalePending() {
 
   if (error) console.error('cleanupStalePending 오류:', error);
 }
-setInterval(cleanupStalePending, 5 * 60 * 1000);
-cleanupStalePending();
+
+if (process.env.TOSS_CLIENT_KEY) {
+  setInterval(cleanupStalePending, 5 * 60 * 1000);
+  cleanupStalePending();
+} else {
+  console.log('TOSS_CLIENT_KEY가 없어 결제 미연동 상태입니다. PENDING 예약 자동 정리를 건너뜁니다.');
+}
 
 module.exports = router;
