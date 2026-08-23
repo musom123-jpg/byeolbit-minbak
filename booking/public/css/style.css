@@ -293,6 +293,12 @@ body {
 }
 .site-footer p { margin: 4px 0; }
 .license { color: #A69B84; }
+.admin-link {
+  color: var(--ink-soft);
+  text-decoration: underline;
+  font-size: 12px;
+}
+.admin-link:hover { color: var(--ink); }
 
 /* Result pages */
 .result-page {

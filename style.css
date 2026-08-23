@@ -391,6 +391,12 @@ img { max-width: 100%; display: block; }
   padding: 28px 20px;
   font-size: 0.85rem;
 }
+.footer .admin-link {
+  color: var(--text-muted);
+  text-decoration: underline;
+  font-size: 0.75rem;
+}
+.footer .admin-link:hover { color: var(--gold-soft); }
 
 /* Responsive */
 @media (max-width: 640px) {
