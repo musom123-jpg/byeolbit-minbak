@@ -44,6 +44,7 @@ async function loadDepositNotice() {
   const res = await fetch('/booking/api/settings/deposit_notice');
   const data = await res.json();
   document.getElementById('depositNotice').textContent = data.value || '';
+  document.getElementById('topDepositNotice').textContent = data.value || '';
 }
 
 async function loadRooms() {

@@ -43,6 +43,17 @@ body {
   justify-content: space-between;
   height: 64px;
 }
+
+.top-deposit-notice {
+  margin: 0;
+  padding: 10px 24px;
+  background: var(--brass);
+  color: var(--ink);
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+.top-deposit-notice:empty { display: none; }
 .brand {
   font-family: var(--font-display);
   font-weight: 700;
