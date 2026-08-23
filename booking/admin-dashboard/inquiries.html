@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>문의 내역 | 별빛민박</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #101a2e;
+    --navy-deep: #0b1220;
+    --gold: #f2c14e;
+    --bg-alt: #f6f4ee;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Gowun Dodum", "Apple SD Gothic Neo", sans-serif;
+    background: var(--bg-alt);
+    color: #1c2233;
+  }
+  header {
+    background: var(--navy-deep);
+    color: #fff;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  header h1 {
+    font-family: "Jua", sans-serif;
+    font-size: 1.25rem;
+    margin: 0;
+    font-weight: normal;
+  }
+  .nav-actions { display: flex; gap: 10px; align-items: center; }
+  .nav-actions .ghost, .nav-actions button {
+    background: transparent;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 0.85rem;
+  }
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+  .inquiry-card {
+    background: #fff;
+    border: 1px solid #e3e3e3;
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 14px;
+  }
+  .inquiry-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .inquiry-name { font-weight: 700; color: var(--navy); font-size: 1.02rem; }
+  .inquiry-date { font-size: 0.78rem; color: #999; }
+  .inquiry-meta { font-size: 0.85rem; color: #555; margin-bottom: 8px; }
+  .inquiry-meta a { color: var(--navy); font-weight: 700; text-decoration: none; }
+  .inquiry-meta a:hover { text-decoration: underline; }
+  .inquiry-message {
+    font-size: 0.9rem;
+    color: #333;
+    white-space: pre-line;
+    background: var(--bg-alt);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+  }
+  .inquiry-actions { text-align: right; }
+  .inquiry-actions button {
+    background: #eee;
+    color: #b3413a;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+  .inquiry-actions button:hover { background: #f4dede; }
+  .empty-state { padding: 40px; text-align: center; color: #999; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>★ 별빛민박 · 문의 내역</h1>
+  <div class="nav-actions">
+    <a href="/booking/admin/" class="ghost">관리자 홈</a>
+    <button class="ghost" id="logoutBtn">로그아웃</button>
+  </div>
+</header>
+
+<main id="inquiryList"></main>
+
+<script>
+const $ = (sel) => document.querySelector(sel);
+
+function formatDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+function cardTemplate(inquiry) {
+  const div = document.createElement('div');
+  div.className = 'inquiry-card';
+
+  const stayLine = (inquiry.checkin || inquiry.checkout)
+    ? `희망 일정: ${inquiry.checkin || '?'} ~ ${inquiry.checkout || '?'}`
+    : '';
+
+  div.innerHTML = `
+    <div class="inquiry-top">
+      <span class="inquiry-name">${inquiry.name}</span>
+      <span class="inquiry-date">${formatDate(inquiry.created_at)}</span>
+    </div>
+    <div class="inquiry-meta">
+      <a href="tel:${inquiry.phone}">☎ ${inquiry.phone}</a>
+      ${stayLine ? ` · ${stayLine}` : ''}
+    </div>
+    ${inquiry.message ? `<div class="inquiry-message">${inquiry.message}</div>` : ''}
+    <div class="inquiry-actions">
+      <button class="delete-btn">삭제</button>
+    </div>
+  `;
+
+  div.querySelector('.delete-btn').addEventListener('click', async () => {
+    if (!confirm('이 문의를 삭제할까요?')) return;
+    const res = await fetch(`/booking/api/admin/inquiries/${inquiry.id}`, { method: 'DELETE' });
+    if (res.ok) {
+      div.remove();
+    } else {
+      alert('삭제에 실패했습니다.');
+    }
+  });
+
+  return div;
+}
+
+async function load() {
+  const res = await fetch('/booking/api/admin/inquiries');
+  if (res.status === 401) {
+    location.href = '/booking/admin/login';
+    return;
+  }
+  const inquiries = await res.json();
+  const list = $('#inquiryList');
+  list.innerHTML = '';
+
+  if (!inquiries.length) {
+    list.innerHTML = '<div class="empty-state">아직 접수된 문의가 없습니다.</div>';
+    return;
+  }
+
+  inquiries.forEach((inquiry) => list.appendChild(cardTemplate(inquiry)));
+}
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await fetch('/booking/api/admin/logout', { method: 'POST' });
+  location.href = '/booking/admin/login';
+});
+
+load();
+</script>
+</body>
+</html>

@@ -278,4 +278,28 @@ router.delete('/price-table/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
+// 예약 문의 내역 (최신순)
+router.get('/inquiries', async (req, res) => {
+  const { data, error } = await supabase
+    .from('inquiries')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error(error);
+    return res.status(500).json({ error: '문의 내역을 불러오지 못했습니다.' });
+  }
+  res.json(data);
+});
+
+// 문의 삭제 (처리 완료된 문의 정리용)
+router.delete('/inquiries/:id', async (req, res) => {
+  const { error } = await supabase.from('inquiries').delete().eq('id', req.params.id);
+  if (error) {
+    console.error(error);
+    return res.status(500).json({ error: '삭제하지 못했습니다.' });
+  }
+  res.json({ ok: true });
+});
+
 module.exports = router;

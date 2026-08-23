@@ -99,11 +99,22 @@ create policy "reservations delete via server"
   on reservations for delete
   using (true);
 
--- inquiries: 브라우저에서 누구나 문의를 "남길" 수는 있지만(insert), 남이 남긴 문의를 읽을 수는 없음(select 정책 없음 = 기본 차단)
+-- inquiries: 브라우저에서 누구나 문의를 "남길" 수는 있음(insert)
 drop policy if exists "anyone can submit an inquiry" on inquiries;
 create policy "anyone can submit an inquiry"
   on inquiries for insert
   with check (true);
+
+-- inquiries: 조회/삭제는 booking 서버(anon key, 관리자 로그인 뒤에서만 사용)를 통해서만 수행
+drop policy if exists "inquiries select via server" on inquiries;
+create policy "inquiries select via server"
+  on inquiries for select
+  using (true);
+
+drop policy if exists "inquiries delete via server" on inquiries;
+create policy "inquiries delete via server"
+  on inquiries for delete
+  using (true);
 
 -- 홈페이지 갤러리 사진 (관리자가 관리, 누구나 조회 가능)
 create table if not exists gallery_photos (
