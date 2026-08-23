@@ -104,3 +104,50 @@ drop policy if exists "anyone can submit an inquiry" on inquiries;
 create policy "anyone can submit an inquiry"
   on inquiries for insert
   with check (true);
+
+-- 홈페이지 갤러리 사진 (관리자가 관리, 누구나 조회 가능)
+create table if not exists gallery_photos (
+  id bigint generated always as identity primary key,
+  image_url text not null,
+  storage_path text,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table gallery_photos enable row level security;
+
+drop policy if exists "gallery photos are publicly readable" on gallery_photos;
+create policy "gallery photos are publicly readable"
+  on gallery_photos for select
+  using (true);
+
+drop policy if exists "gallery photos insert via server" on gallery_photos;
+create policy "gallery photos insert via server"
+  on gallery_photos for insert
+  with check (true);
+
+drop policy if exists "gallery photos delete via server" on gallery_photos;
+create policy "gallery photos delete via server"
+  on gallery_photos for delete
+  using (true);
+
+-- ============================================================
+-- 객실/갤러리 사진 업로드 (Storage)
+-- 아래 SQL을 실행하기 전에, 대시보드 > Storage 에서
+-- 이름이 정확히 "site-photos" 인 버킷을 만들고 Public 으로 설정해주세요.
+-- ============================================================
+drop policy if exists "site photos insert via server" on storage.objects;
+create policy "site photos insert via server"
+  on storage.objects for insert
+  with check (bucket_id = 'site-photos');
+
+drop policy if exists "site photos update via server" on storage.objects;
+create policy "site photos update via server"
+  on storage.objects for update
+  using (bucket_id = 'site-photos')
+  with check (bucket_id = 'site-photos');
+
+drop policy if exists "site photos delete via server" on storage.objects;
+create policy "site photos delete via server"
+  on storage.objects for delete
+  using (bucket_id = 'site-photos');

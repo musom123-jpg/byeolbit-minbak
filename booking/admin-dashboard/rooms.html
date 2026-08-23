@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>객실 관리 | 별빛민박</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #101a2e;
+    --navy-deep: #0b1220;
+    --gold: #f2c14e;
+    --bg-alt: #f6f4ee;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Gowun Dodum", "Apple SD Gothic Neo", sans-serif;
+    background: var(--bg-alt);
+    color: #1c2233;
+  }
+  header {
+    background: var(--navy-deep);
+    color: #fff;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  header h1 {
+    font-family: "Jua", sans-serif;
+    font-size: 1.25rem;
+    margin: 0;
+    font-weight: normal;
+  }
+  .nav-actions { display: flex; gap: 10px; align-items: center; }
+  .nav-actions a, .nav-actions button {
+    background: var(--gold);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--navy-deep);
+    font-size: 0.85rem;
+  }
+  .nav-actions button.ghost {
+    background: transparent;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.4);
+  }
+  main {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+  .room-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+  }
+  .room-card {
+    background: #fff;
+    border: 1px solid #e3e3e3;
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .thumb-wrap { position: relative; aspect-ratio: 4/3; background: #eee; }
+  .thumb-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb-wrap .no-photo {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #999; font-size: 0.85rem;
+  }
+  .thumb-wrap .photo-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.35);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.15s;
+    cursor: pointer;
+  }
+  .thumb-wrap:hover .photo-overlay { opacity: 1; }
+  .photo-overlay span {
+    background: #fff;
+    color: var(--navy);
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+  .thumb-wrap input[type="file"] { display: none; }
+  .uploading-badge {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.5);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem;
+  }
+
+  .card-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+  .card-body label {
+    font-size: 0.76rem;
+    color: #888;
+    display: block;
+    margin-bottom: 3px;
+  }
+  .card-body input[type="text"],
+  .card-body input[type="number"],
+  .card-body textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    border-radius: 7px;
+    font-family: inherit;
+    font-size: 0.9rem;
+  }
+  .card-body textarea { resize: vertical; min-height: 50px; }
+  .field-row { display: flex; gap: 10px; }
+  .field-row > div { flex: 1; }
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 4px;
+  }
+  .active-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    color: #555;
+  }
+  .save-btn {
+    background: var(--navy);
+    color: #fff;
+    border: none;
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  .save-btn:hover { background: #1b2a45; }
+  .save-btn:disabled { opacity: 0.6; cursor: default; }
+  .save-msg {
+    font-size: 0.78rem;
+    text-align: right;
+    min-height: 1.1em;
+    margin-top: 4px;
+  }
+  .save-msg.ok { color: #2a8a4a; }
+  .save-msg.err { color: #d64545; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>★ 별빛민박 · 객실 관리</h1>
+  <div class="nav-actions">
+    <a href="/booking/admin/">예약 스케줄</a>
+    <a href="/booking/admin/gallery">갤러리 관리</a>
+    <button class="ghost" id="logoutBtn">로그아웃</button>
+  </div>
+</header>
+
+<main>
+  <div class="room-grid" id="roomGrid"></div>
+</main>
+
+<script>
+const $ = (sel) => document.querySelector(sel);
+
+function formatWon(n) { return Number(n).toLocaleString('ko-KR') + '원'; }
+
+function roomCardTemplate(room) {
+  const div = document.createElement('div');
+  div.className = 'room-card';
+  div.dataset.id = room.id;
+
+  div.innerHTML = `
+    <div class="thumb-wrap">
+      ${room.image_url
+        ? `<img src="${room.image_url}" alt="${room.name}" class="thumb-img">`
+        : `<div class="no-photo">사진 없음</div>`}
+      <label class="photo-overlay">
+        <span>사진 변경</span>
+        <input type="file" accept="image/*" class="photo-input">
+      </label>
+    </div>
+    <div class="card-body">
+      <div>
+        <label>객실 이름</label>
+        <input type="text" class="f-name" value="${room.name || ''}">
+      </div>
+      <div>
+        <label>설명</label>
+        <textarea class="f-description">${room.description || ''}</textarea>
+      </div>
+      <div class="field-row">
+        <div>
+          <label>최대 인원</label>
+          <input type="number" class="f-capacity" min="1" value="${room.capacity}">
+        </div>
+        <div>
+          <label>1박 가격 (원)</label>
+          <input type="number" class="f-price" min="0" step="1000" value="${room.price_per_night}">
+        </div>
+      </div>
+      <div class="card-footer">
+        <label class="active-toggle">
+          <input type="checkbox" class="f-active" ${room.is_active ? 'checked' : ''}>
+          홈페이지에 노출
+        </label>
+        <button class="save-btn">저장</button>
+      </div>
+      <p class="save-msg"></p>
+    </div>
+  `;
+
+  const photoInput = div.querySelector('.photo-input');
+  const thumbWrap = div.querySelector('.thumb-wrap');
+
+  photoInput.addEventListener('change', async () => {
+    const file = photoInput.files[0];
+    if (!file) return;
+
+    const badge = document.createElement('div');
+    badge.className = 'uploading-badge';
+    badge.textContent = '업로드 중…';
+    thumbWrap.appendChild(badge);
+
+    const formData = new FormData();
+    formData.append('photo', file);
+
+    try {
+      const res = await fetch(`/booking/api/admin/rooms/${room.id}/photo`, { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '업로드 실패');
+
+      let img = thumbWrap.querySelector('.thumb-img');
+      if (!img) {
+        img = document.createElement('img');
+        img.className = 'thumb-img';
+        thumbWrap.querySelector('.no-photo')?.remove();
+        thumbWrap.prepend(img);
+      }
+      img.src = data.image_url + '?t=' + Date.now();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      badge.remove();
+    }
+  });
+
+  div.querySelector('.save-btn').addEventListener('click', async () => {
+    const btn = div.querySelector('.save-btn');
+    const msg = div.querySelector('.save-msg');
+    btn.disabled = true;
+    msg.textContent = '';
+    msg.className = 'save-msg';
+
+    const payload = {
+      name: div.querySelector('.f-name').value.trim(),
+      description: div.querySelector('.f-description').value.trim(),
+      capacity: Number(div.querySelector('.f-capacity').value),
+      price_per_night: Number(div.querySelector('.f-price').value),
+      is_active: div.querySelector('.f-active').checked
+    };
+
+    try {
+      const res = await fetch(`/booking/api/admin/rooms/${room.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '저장 실패');
+      msg.textContent = '저장되었습니다.';
+      msg.classList.add('ok');
+    } catch (err) {
+      msg.textContent = err.message;
+      msg.classList.add('err');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  return div;
+}
+
+async function load() {
+  const res = await fetch('/booking/api/admin/rooms');
+  if (res.status === 401) {
+    location.href = '/booking/admin/login';
+    return;
+  }
+  const rooms = await res.json();
+  const grid = $('#roomGrid');
+  grid.innerHTML = '';
+  rooms.forEach((room) => grid.appendChild(roomCardTemplate(room)));
+}
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await fetch('/booking/api/admin/logout', { method: 'POST' });
+  location.href = '/booking/admin/login';
+});
+
+load();
+</script>
+</body>
+</html>

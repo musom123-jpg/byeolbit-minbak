@@ -1,6 +1,14 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const supabase = require('../supabaseClient');
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+const PHOTO_BUCKET = 'site-photos';
+
+function safeExt(originalname) {
+  return (originalname.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+}
 
 // 관리자용 예약 목록 (기간 겹치는 예약 전체, 취소건 포함)
 // GET /booking/api/admin/reservations?from=2026-08-01&to=2026-08-31
@@ -40,6 +48,147 @@ router.patch('/reservations/:id/status', async (req, res) => {
   if (error) {
     console.error(error);
     return res.status(500).json({ error: '상태 변경에 실패했습니다.' });
+  }
+  res.json({ ok: true });
+});
+
+// 객실 목록 (비노출 객실 포함) - 관리자 객실 관리 화면용
+router.get('/rooms', async (req, res) => {
+  const { data, error } = await supabase.from('rooms').select('*').order('id');
+  if (error) {
+    console.error(error);
+    return res.status(500).json({ error: '객실 목록을 불러오지 못했습니다.' });
+  }
+  res.json(data);
+});
+
+// 객실 정보 수정 (이름/설명/인원/가격/노출여부)
+router.patch('/rooms/:id', async (req, res) => {
+  const { name, description, capacity, price_per_night, is_active } = req.body;
+  const patch = {};
+  if (name !== undefined) patch.name = String(name);
+  if (description !== undefined) patch.description = String(description);
+  if (capacity !== undefined) {
+    const n = Number(capacity);
+    if (!Number.isFinite(n) || n < 1) return res.status(400).json({ error: '인원은 1 이상의 숫자여야 합니다.' });
+    patch.capacity = n;
+  }
+  if (price_per_night !== undefined) {
+    const n = Number(price_per_night);
+    if (!Number.isFinite(n) || n < 0) return res.status(400).json({ error: '가격은 0 이상의 숫자여야 합니다.' });
+    patch.price_per_night = n;
+  }
+  if (is_active !== undefined) patch.is_active = Boolean(is_active);
+
+  const { data, error } = await supabase
+    .from('rooms')
+    .update(patch)
+    .eq('id', req.params.id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error(error);
+    return res.status(500).json({ error: '객실 정보를 저장하지 못했습니다.' });
+  }
+  res.json(data);
+});
+
+// 객실 사진 업로드 (Supabase Storage에 저장 후 image_url 갱신)
+router.post('/rooms/:id/photo', upload.single('photo'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: '사진 파일이 필요합니다.' });
+
+  const filePath = `rooms/room-${req.params.id}-${Date.now()}.${safeExt(req.file.originalname)}`;
+
+  const { error: uploadErr } = await supabase.storage
+    .from(PHOTO_BUCKET)
+    .upload(filePath, req.file.buffer, { contentType: req.file.mimetype, upsert: true });
+
+  if (uploadErr) {
+    console.error(uploadErr);
+    return res.status(500).json({ error: `사진 업로드에 실패했습니다. (${uploadErr.message})` });
+  }
+
+  const { data: publicUrlData } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(filePath);
+
+  const { data, error } = await supabase
+    .from('rooms')
+    .update({ image_url: publicUrlData.publicUrl })
+    .eq('id', req.params.id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error(error);
+    return res.status(500).json({ error: '사진 URL 저장에 실패했습니다.' });
+  }
+  res.json(data);
+});
+
+// 갤러리 사진 목록 (관리자용, 최신순)
+router.get('/gallery', async (req, res) => {
+  const { data, error } = await supabase
+    .from('gallery_photos')
+    .select('*')
+    .order('sort_order', { ascending: true })
+    .order('id', { ascending: true });
+
+  if (error) {
+    console.error(error);
+    return res.status(500).json({ error: '갤러리 목록을 불러오지 못했습니다.' });
+  }
+  res.json(data);
+});
+
+// 갤러리 사진 추가
+router.post('/gallery', upload.single('photo'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: '사진 파일이 필요합니다.' });
+
+  const filePath = `gallery/gallery-${Date.now()}.${safeExt(req.file.originalname)}`;
+
+  const { error: uploadErr } = await supabase.storage
+    .from(PHOTO_BUCKET)
+    .upload(filePath, req.file.buffer, { contentType: req.file.mimetype, upsert: true });
+
+  if (uploadErr) {
+    console.error(uploadErr);
+    return res.status(500).json({ error: `사진 업로드에 실패했습니다. (${uploadErr.message})` });
+  }
+
+  const { data: publicUrlData } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(filePath);
+
+  const { data, error } = await supabase
+    .from('gallery_photos')
+    .insert({ image_url: publicUrlData.publicUrl, storage_path: filePath })
+    .select()
+    .single();
+
+  if (error) {
+    console.error(error);
+    return res.status(500).json({ error: '갤러리 사진 저장에 실패했습니다.' });
+  }
+  res.json(data);
+});
+
+// 갤러리 사진 삭제
+router.delete('/gallery/:id', async (req, res) => {
+  const { data: photo, error: findErr } = await supabase
+    .from('gallery_photos')
+    .select('*')
+    .eq('id', req.params.id)
+    .single();
+
+  if (findErr || !photo) return res.status(404).json({ error: '사진을 찾을 수 없습니다.' });
+
+  if (photo.storage_path) {
+    const { error: removeErr } = await supabase.storage.from(PHOTO_BUCKET).remove([photo.storage_path]);
+    if (removeErr) console.error('스토리지 파일 삭제 실패:', removeErr);
+  }
+
+  const { error } = await supabase.from('gallery_photos').delete().eq('id', req.params.id);
+  if (error) {
+    console.error(error);
+    return res.status(500).json({ error: '사진 삭제에 실패했습니다.' });
   }
   res.json({ ok: true });
 });

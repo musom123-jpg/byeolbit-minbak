@@ -44,3 +44,19 @@ inquiryForm.addEventListener('submit', async (e) => {
   inquiryStatus.classList.add('is-success');
   inquiryForm.reset();
 });
+
+// 갤러리: 관리자가 등록한 사진이 있으면 대체하고, 없으면 "사진 준비중" 플레이스홀더를 유지합니다.
+(async function loadGallery() {
+  const grid = document.getElementById('galleryGrid');
+  const { data, error } = await supabaseClient
+    .from('gallery_photos')
+    .select('image_url')
+    .order('sort_order', { ascending: true })
+    .order('id', { ascending: true });
+
+  if (error || !data || !data.length) return;
+
+  grid.innerHTML = data
+    .map(({ image_url }) => `<img src="${image_url}" alt="별빛민박 갤러리 사진" class="gallery-photo">`)
+    .join('');
+})();

@@ -280,6 +280,12 @@ img { max-width: 100%; display: block; }
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
 }
+.gallery-photo {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius);
+}
 
 /* Location */
 .map-placeholder {

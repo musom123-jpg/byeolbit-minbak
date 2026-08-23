@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>갤러리 관리 | 별빛민박</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #101a2e;
+    --navy-deep: #0b1220;
+    --gold: #f2c14e;
+    --bg-alt: #f6f4ee;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Gowun Dodum", "Apple SD Gothic Neo", sans-serif;
+    background: var(--bg-alt);
+    color: #1c2233;
+  }
+  header {
+    background: var(--navy-deep);
+    color: #fff;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  header h1 {
+    font-family: "Jua", sans-serif;
+    font-size: 1.25rem;
+    margin: 0;
+    font-weight: normal;
+  }
+  .nav-actions { display: flex; gap: 10px; align-items: center; }
+  .nav-actions a, .nav-actions button {
+    background: var(--gold);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--navy-deep);
+    font-size: 0.85rem;
+  }
+  .nav-actions button.ghost {
+    background: transparent;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.4);
+  }
+  main {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+  .upload-zone {
+    border: 2px dashed #c9c2ac;
+    border-radius: var(--radius);
+    background: #fff;
+    padding: 28px;
+    text-align: center;
+    margin-bottom: 24px;
+    color: #888;
+  }
+  .upload-zone label {
+    display: inline-block;
+    background: var(--navy);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  .upload-zone label:hover { background: #1b2a45; }
+  .upload-zone input[type="file"] { display: none; }
+  .upload-status { margin-top: 10px; font-size: 0.85rem; min-height: 1.2em; }
+  .upload-status.err { color: #d64545; }
+
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+  }
+  .photo-card {
+    position: relative;
+    aspect-ratio: 4/3;
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: #eee;
+  }
+  .photo-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo-card .delete-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+  .photo-card .delete-btn:hover { background: rgba(198,60,60,0.9); }
+  .empty-state { padding: 40px; text-align: center; color: #999; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>★ 별빛민박 · 갤러리 관리</h1>
+  <div class="nav-actions">
+    <a href="/booking/admin/">예약 스케줄</a>
+    <a href="/booking/admin/rooms">객실 관리</a>
+    <button class="ghost" id="logoutBtn">로그아웃</button>
+  </div>
+</header>
+
+<main>
+  <div class="upload-zone">
+    <label>사진 추가하기<input type="file" id="photoInput" accept="image/*"></label>
+    <p class="upload-status" id="uploadStatus"></p>
+  </div>
+  <div class="gallery-grid" id="galleryGrid"></div>
+</main>
+
+<script>
+const $ = (sel) => document.querySelector(sel);
+
+function photoCardTemplate(photo) {
+  const div = document.createElement('div');
+  div.className = 'photo-card';
+  div.innerHTML = `
+    <img src="${photo.image_url}" alt="갤러리 사진">
+    <button class="delete-btn">삭제</button>
+  `;
+  div.querySelector('.delete-btn').addEventListener('click', async () => {
+    if (!confirm('이 사진을 삭제할까요?')) return;
+    const res = await fetch(`/booking/api/admin/gallery/${photo.id}`, { method: 'DELETE' });
+    if (res.ok) {
+      div.remove();
+    } else {
+      alert('삭제에 실패했습니다.');
+    }
+  });
+  return div;
+}
+
+async function load() {
+  const res = await fetch('/booking/api/admin/gallery');
+  if (res.status === 401) {
+    location.href = '/booking/admin/login';
+    return;
+  }
+  const photos = await res.json();
+  const grid = $('#galleryGrid');
+  grid.innerHTML = '';
+  if (!photos.length) {
+    grid.innerHTML = '<div class="empty-state">아직 등록된 사진이 없습니다. 위에서 사진을 추가해주세요.</div>';
+    return;
+  }
+  photos.forEach((photo) => grid.appendChild(photoCardTemplate(photo)));
+}
+
+$('#photoInput').addEventListener('change', async () => {
+  const file = $('#photoInput').files[0];
+  if (!file) return;
+
+  const status = $('#uploadStatus');
+  status.textContent = '업로드 중…';
+  status.className = 'upload-status';
+
+  const formData = new FormData();
+  formData.append('photo', file);
+
+  try {
+    const res = await fetch('/booking/api/admin/gallery', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '업로드 실패');
+    status.textContent = '추가되었습니다.';
+    $('#photoInput').value = '';
+    await load();
+  } catch (err) {
+    status.textContent = err.message;
+    status.classList.add('err');
+  }
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await fetch('/booking/api/admin/logout', { method: 'POST' });
+  location.href = '/booking/admin/login';
+});
+
+load();
+</script>
+</body>
+</html>
