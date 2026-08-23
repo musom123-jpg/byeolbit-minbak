@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>예약하기 | 별빛민박</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/booking/css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <span class="brand" id="businessName">숙소 이름</span>
+    <a class="tel" id="businessPhone" href="tel:"></a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap hero-inner">
+    <p class="eyebrow">머무는 날짜를 먼저 정해주세요</p>
+    <h1>날짜를 고르면,<br>남은 방이 바로 보여요</h1>
+
+    <form id="searchForm" class="stay-picker">
+      <div class="field">
+        <label for="checkin">체크인</label>
+        <input type="date" id="checkin" required>
+      </div>
+      <div class="divider" aria-hidden="true"></div>
+      <div class="field">
+        <label for="checkout">체크아웃</label>
+        <input type="date" id="checkout" required>
+      </div>
+      <div class="field small">
+        <label for="guests">인원</label>
+        <input type="number" id="guests" min="1" value="2" required>
+      </div>
+      <button type="submit" class="btn-primary">객실 확인</button>
+    </form>
+    <p class="hint" id="stayHint"></p>
+  </div>
+</section>
+
+<main class="wrap">
+  <section id="rooms" class="rooms">
+    <div class="section-head">
+      <h2>객실</h2>
+      <span class="count" id="roomCount"></span>
+    </div>
+    <div id="roomList" class="room-list"></div>
+  </section>
+</main>
+
+<!-- 예약자 정보 입력 모달 -->
+<dialog id="bookingDialog" class="booking-dialog">
+  <form id="bookingForm" method="dialog">
+    <h3>예약자 정보</h3>
+    <p class="summary" id="bookingSummary"></p>
+
+    <label>이름
+      <input type="text" id="guestName" required>
+    </label>
+    <label>연락처
+      <input type="tel" id="guestPhone" placeholder="010-0000-0000" required>
+    </label>
+    <label>이메일 (선택)
+      <input type="email" id="guestEmail">
+    </label>
+    <label>요청사항 (선택)
+      <textarea id="guestMemo" rows="2"></textarea>
+    </label>
+
+    <div class="dialog-actions">
+      <button type="button" class="btn-ghost" id="cancelBooking">취소</button>
+      <button type="submit" class="btn-primary" id="goToPayment">결제하기</button>
+    </div>
+  </form>
+</dialog>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p id="footerBusiness"></p>
+    <p id="footerLicense" class="license"></p>
+  </div>
+</footer>
+
+<script src="https://js.tosspayments.com/v1"></script>
+<script src="/booking/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>결제가 완료되지 않았습니다 | 별빛민박</title>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/booking/css/style.css">
+</head>
+<body>
+<main class="wrap result-page">
+  <div class="result-box">
+    <p class="result-status fail">결제가 완료되지 않았습니다</p>
+    <p id="failReason" class="result-detail"></p>
+  </div>
+  <a href="/booking/" class="btn-ghost" style="margin-top:24px;display:inline-block;">다시 시도하기</a>
+</main>
+<script>
+  const params = new URLSearchParams(location.search);
+  document.getElementById('failReason').textContent = params.get('message') || '알 수 없는 오류가 발생했습니다.';
+</script>
+</body>
+</html>

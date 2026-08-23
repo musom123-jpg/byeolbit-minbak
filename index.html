@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
 
@@ -200,6 +201,21 @@
       <a href="/booking/" class="btn-primary">온라인 예약하기</a>
       <a href="tel:010-4056-5304" class="phone-link">☎ 010-4056-5304</a>
     </div>
+
+    <form id="inquiry-form" class="inquiry-form">
+      <h3 class="inquiry-title">예약 문의 남기기</h3>
+      <div class="form-row">
+        <input type="text" name="name" placeholder="이름" required>
+        <input type="tel" name="phone" placeholder="연락처 (010-0000-0000)" required>
+      </div>
+      <div class="form-row">
+        <label class="date-field">체크인<input type="date" name="checkin"></label>
+        <label class="date-field">체크아웃<input type="date" name="checkout"></label>
+      </div>
+      <textarea name="message" rows="4" placeholder="문의하실 내용을 남겨주시면 확인 후 연락드리겠습니다."></textarea>
+      <button type="submit" class="btn-primary">문의 남기기</button>
+      <p id="inquiry-status" class="inquiry-status" role="status" aria-live="polite"></p>
+    </form>
   </div>
 </section>
 
