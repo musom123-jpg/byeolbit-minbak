@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const crypto = require('crypto');
+const supabase = require('./supabaseClient');
 
 const app = express();
 app.use(cors());
@@ -143,6 +144,21 @@ app.get('/booking/api/config', (req, res) => {
     businessLicenseNo: process.env.BUSINESS_LICENSE_NO || '',
     tossClientKey: process.env.TOSS_CLIENT_KEY || ''
   });
+});
+
+// 공개 설정값 조회 (예: 예약 다이얼로그의 계약금 안내 문구)
+app.get('/booking/api/settings/:key', async (req, res) => {
+  const { data, error } = await supabase
+    .from('site_settings')
+    .select('value')
+    .eq('key', req.params.key)
+    .maybeSingle();
+
+  if (error) {
+    console.error(error);
+    return res.status(500).json({ error: '설정값을 불러오지 못했습니다.' });
+  }
+  res.json({ key: req.params.key, value: data ? data.value : '' });
 });
 
 app.use('/booking/api/rooms', require('./routes/rooms'));

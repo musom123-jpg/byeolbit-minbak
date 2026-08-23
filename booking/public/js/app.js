@@ -40,6 +40,12 @@ async function loadConfig() {
   }
 }
 
+async function loadDepositNotice() {
+  const res = await fetch('/booking/api/settings/deposit_notice');
+  const data = await res.json();
+  document.getElementById('depositNotice').textContent = data.value || '';
+}
+
 async function loadRooms() {
   const res = await fetch('/booking/api/rooms');
   ROOMS = await res.json();
@@ -170,7 +176,7 @@ async function submitBooking(e) {
     if (!res.ok) {
       alert(data.error || '예약에 실패했습니다.');
       btn.disabled = false;
-      btn.textContent = '결제하기';
+      btn.textContent = '가예약';
       return;
     }
 
@@ -179,7 +185,7 @@ async function submitBooking(e) {
       alert(`예약이 접수되었습니다!\n예약번호: ${data.orderId}\n곧 전화로 연락드려 예약을 확정하겠습니다.`);
       document.getElementById('bookingDialog').close();
       btn.disabled = false;
-      btn.textContent = '결제하기';
+      btn.textContent = '가예약';
       currentSearch && (await renderRooms());
       return;
     }
@@ -197,7 +203,7 @@ async function submitBooking(e) {
     console.error(err);
     alert('예약 처리 중 오류가 발생했습니다.');
     btn.disabled = false;
-    btn.textContent = '결제하기';
+    btn.textContent = '가예약';
   }
 }
 
@@ -241,6 +247,7 @@ document.getElementById('bookingForm').addEventListener('submit', submitBooking)
 (async function init() {
   await loadConfig();
   await loadRooms();
+  await loadDepositNotice();
   initSearchForm();
   await renderRooms();
 })();

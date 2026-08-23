@@ -277,6 +277,18 @@ body {
   color: var(--ink);
   resize: vertical;
 }
+.deposit-notice {
+  background: var(--paper-dim);
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  white-space: pre-line;
+  margin: 0;
+}
+.deposit-notice:empty { display: none; }
+
 .dialog-actions {
   display: flex;
   justify-content: flex-end;

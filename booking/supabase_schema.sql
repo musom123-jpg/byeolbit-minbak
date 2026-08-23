@@ -243,3 +243,7 @@ create policy "site settings update via server"
 insert into site_settings (key, value)
 values ('price_table_note', '※ 입실 15:00 / 퇴실 11:00, 인원 추가 시 1인당 추가요금이 발생합니다. 정확한 예약 가능 여부는 전화로 문의해 주세요.')
 on conflict (key) do nothing;
+
+insert into site_settings (key, value)
+values ('deposit_notice', '예약 확정을 위해 계약금 입금이 필요합니다. 입금 계좌와 금액은 전화(010-4056-5304)로 문의해 주세요.')
+on conflict (key) do nothing;

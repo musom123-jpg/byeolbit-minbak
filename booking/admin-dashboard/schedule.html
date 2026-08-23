@@ -187,6 +187,50 @@
     margin-right: 4px;
   }
   .row-actions { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+
+  .note-wrap {
+    background: #fff;
+    border: 1px solid #e3e3e3;
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    max-width: 640px;
+    margin-bottom: 20px;
+  }
+  .note-wrap label {
+    display: block;
+    font-size: 0.8rem;
+    color: #666;
+    margin-bottom: 8px;
+  }
+  .note-wrap textarea {
+    width: 100%;
+    padding: 9px 11px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.88rem;
+    resize: vertical;
+  }
+  .note-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .note-actions button {
+    background: var(--navy);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.82rem;
+  }
+  .note-actions button:hover { background: #1b2a45; }
+  .note-msg { font-size: 0.76rem; }
+  .note-msg.ok { color: #2a8a4a; }
+  .note-msg.err { color: #d64545; }
 </style>
 </head>
 <body>
@@ -207,6 +251,15 @@
     <span><span class="dot pending"></span>가예약 (전화 확인 대기)</span>
     <span><span class="dot paid"></span>결제 완료</span>
     <span><span class="dot cancelled"></span>취소됨 (목록에만 표시)</span>
+  </div>
+
+  <div class="note-wrap">
+    <label for="depositNoteInput">계약금 안내 문구 (예약 페이지의 예약자 정보 입력창에 표시됩니다)</label>
+    <textarea id="depositNoteInput" rows="2"></textarea>
+    <div class="note-actions">
+      <button id="depositNoteSaveBtn">문구 저장</button>
+      <span class="note-msg" id="depositNoteMsg"></span>
+    </div>
   </div>
 
   <div class="grid-wrap">
@@ -415,7 +468,39 @@ $('#nextMonth').addEventListener('click', () => {
   load();
 });
 
+async function loadDepositNote() {
+  const res = await fetch('/booking/api/admin/settings/deposit_notice');
+  if (res.status === 401) {
+    location.href = '/booking/admin/login';
+    return;
+  }
+  const data = await res.json();
+  $('#depositNoteInput').value = data.value || '';
+}
+
+$('#depositNoteSaveBtn').addEventListener('click', async () => {
+  const msg = $('#depositNoteMsg');
+  msg.textContent = '';
+  msg.className = 'note-msg';
+
+  try {
+    const res = await fetch('/booking/api/admin/settings/deposit_notice', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: $('#depositNoteInput').value })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '저장 실패');
+    msg.textContent = '저장되었습니다.';
+    msg.classList.add('ok');
+  } catch (err) {
+    msg.textContent = err.message;
+    msg.classList.add('err');
+  }
+});
+
 load();
+loadDepositNote();
 </script>
 </body>
 </html>
