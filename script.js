@@ -91,6 +91,36 @@ inquiryForm.addEventListener('submit', async (e) => {
   });
 })();
 
+// 요금 안내 표: 관리자 페이지(요금 안내 관리)에서 저장한 내용으로 채웁니다.
+(async function loadPriceTable() {
+  const tbody = document.getElementById('priceTableBody');
+  const { data, error } = await supabaseClient
+    .from('price_table_rows')
+    .select('*')
+    .order('sort_order', { ascending: true })
+    .order('id', { ascending: true });
+
+  if (error || !data || !data.length) return;
+
+  const won = (n) => (n === null || n === undefined ? '-' : Number(n).toLocaleString('ko-KR') + '원');
+
+  tbody.innerHTML = data
+    .map((row) => `
+      <tr>
+        <td>${row.room_name}</td>
+        <td>${row.capacity_base ?? '-'}인</td>
+        <td>${row.capacity_max ?? '-'}인</td>
+        <td>${won(row.off_weekday)}</td>
+        <td>${won(row.off_weekend)}</td>
+        <td>${won(row.peak_weekday)}</td>
+        <td>${won(row.peak_weekend)}</td>
+        <td>${won(row.superpeak_weekday)}</td>
+        <td>${won(row.superpeak_weekend)}</td>
+      </tr>
+    `)
+    .join('');
+})();
+
 // 갤러리: 관리자가 등록한 사진이 있으면 대체하고, 없으면 "사진 준비중" 플레이스홀더를 유지합니다.
 (async function loadGallery() {
   const grid = document.getElementById('galleryGrid');

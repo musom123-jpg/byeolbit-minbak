@@ -123,6 +123,9 @@ app.get('/booking/admin/rooms', requireAdminPage, (req, res) => {
 app.get('/booking/admin/gallery', requireAdminPage, (req, res) => {
   res.sendFile(path.join(ADMIN_DIR, 'gallery.html'));
 });
+app.get('/booking/admin/price-table', requireAdminPage, (req, res) => {
+  res.sendFile(path.join(ADMIN_DIR, 'price-table.html'));
+});
 app.use('/booking/api/admin', requireAdminApi, require('./routes/admin'));
 
 // 예약 시스템은 /booking 경로 하위에서 서빙

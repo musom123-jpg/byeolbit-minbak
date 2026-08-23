@@ -193,4 +193,89 @@ router.delete('/gallery/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
+const PRICE_TABLE_NUMERIC_FIELDS = [
+  'capacity_base', 'capacity_max',
+  'off_weekday', 'off_weekend',
+  'peak_weekday', 'peak_weekend',
+  'superpeak_weekday', 'superpeak_weekend'
+];
+
+// 요금 안내 표 목록
+router.get('/price-table', async (req, res) => {
+  const { data, error } = await supabase
+    .from('price_table_rows')
+    .select('*')
+    .order('sort_order', { ascending: true })
+    .order('id', { ascending: true });
+
+  if (error) {
+    console.error(error);
+    return res.status(500).json({ error: '요금 안내를 불러오지 못했습니다.' });
+  }
+  res.json(data);
+});
+
+// 요금 안내 행 추가
+router.post('/price-table', async (req, res) => {
+  const { data: maxRow } = await supabase
+    .from('price_table_rows')
+    .select('sort_order')
+    .order('sort_order', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { data, error } = await supabase
+    .from('price_table_rows')
+    .insert({
+      room_name: '새 객실',
+      sort_order: (maxRow?.sort_order || 0) + 1
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error(error);
+    return res.status(500).json({ error: '행을 추가하지 못했습니다.' });
+  }
+  res.json(data);
+});
+
+// 요금 안내 행 수정
+router.patch('/price-table/:id', async (req, res) => {
+  const patch = {};
+  if (req.body.room_name !== undefined) patch.room_name = String(req.body.room_name);
+
+  for (const field of PRICE_TABLE_NUMERIC_FIELDS) {
+    if (req.body[field] === undefined) continue;
+    const n = Number(req.body[field]);
+    if (!Number.isFinite(n) || n < 0) {
+      return res.status(400).json({ error: '숫자 항목은 0 이상이어야 합니다.' });
+    }
+    patch[field] = n;
+  }
+
+  const { data, error } = await supabase
+    .from('price_table_rows')
+    .update(patch)
+    .eq('id', req.params.id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error(error);
+    return res.status(500).json({ error: '저장하지 못했습니다.' });
+  }
+  res.json(data);
+});
+
+// 요금 안내 행 삭제
+router.delete('/price-table/:id', async (req, res) => {
+  const { error } = await supabase.from('price_table_rows').delete().eq('id', req.params.id);
+  if (error) {
+    console.error(error);
+    return res.status(500).json({ error: '삭제하지 못했습니다.' });
+  }
+  res.json({ ok: true });
+});
+
 module.exports = router;

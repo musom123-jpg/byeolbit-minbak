@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>요금 안내 관리 | 별빛민박</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #101a2e;
+    --navy-deep: #0b1220;
+    --gold: #f2c14e;
+    --bg-alt: #f6f4ee;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Gowun Dodum", "Apple SD Gothic Neo", sans-serif;
+    background: var(--bg-alt);
+    color: #1c2233;
+  }
+  header {
+    background: var(--navy-deep);
+    color: #fff;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  header h1 {
+    font-family: "Jua", sans-serif;
+    font-size: 1.25rem;
+    margin: 0;
+    font-weight: normal;
+  }
+  .nav-actions { display: flex; gap: 10px; align-items: center; }
+  .nav-actions .ghost, .nav-actions button {
+    background: transparent;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 0.85rem;
+  }
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+  .lead { color: #777; font-size: 0.88rem; margin-bottom: 16px; }
+  .table-wrap {
+    overflow-x: auto;
+    background: #fff;
+    border: 1px solid #e3e3e3;
+    border-radius: var(--radius);
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 980px;
+    font-size: 0.85rem;
+  }
+  th, td {
+    border: 1px solid #eee;
+    padding: 8px 10px;
+    text-align: center;
+    white-space: nowrap;
+  }
+  th {
+    background: var(--bg-alt);
+    color: var(--navy);
+    font-weight: 700;
+    font-size: 0.78rem;
+  }
+  td input {
+    width: 90px;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    text-align: center;
+  }
+  td input.room-name-input { width: 110px; text-align: left; }
+  .row-actions { display: flex; gap: 6px; justify-content: center; }
+  .row-actions button {
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+  .save-btn { background: var(--navy); color: #fff; }
+  .save-btn:hover { background: #1b2a45; }
+  .delete-btn { background: #eee; color: #b3413a; }
+  .delete-btn:hover { background: #f4dede; }
+  .add-row-wrap { margin-top: 16px; }
+  .add-row-wrap button {
+    background: var(--gold);
+    color: var(--navy-deep);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.88rem;
+  }
+  .row-msg { font-size: 0.75rem; min-height: 1.1em; }
+  .row-msg.ok { color: #2a8a4a; }
+  .row-msg.err { color: #d64545; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>★ 별빛민박 · 요금 안내 관리</h1>
+  <div class="nav-actions">
+    <a href="/booking/admin/" class="ghost">관리자 홈</a>
+    <button class="ghost" id="logoutBtn">로그아웃</button>
+  </div>
+</header>
+
+<main>
+  <p class="lead">숫자는 원(₩) 단위입니다. 값을 수정한 뒤 각 행의 "저장" 버튼을 눌러주세요.</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>객실명</th>
+          <th>기준인원</th>
+          <th>최대인원</th>
+          <th>비수기 주중</th>
+          <th>비수기 주말</th>
+          <th>성수기 주중</th>
+          <th>성수기 주말</th>
+          <th>극성수기 주중</th>
+          <th>극성수기 주말</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+  <div class="add-row-wrap">
+    <button id="addRowBtn">행 추가</button>
+  </div>
+</main>
+
+<script>
+const $ = (sel) => document.querySelector(sel);
+const FIELDS = ['capacity_base', 'capacity_max', 'off_weekday', 'off_weekend', 'peak_weekday', 'peak_weekend', 'superpeak_weekday', 'superpeak_weekend'];
+
+function rowTemplate(row) {
+  const tr = document.createElement('tr');
+  tr.dataset.id = row.id;
+
+  tr.innerHTML = `
+    <td><input type="text" class="room-name-input f-room_name" value="${row.room_name || ''}"></td>
+    ${FIELDS.map((f) => `<td><input type="number" min="0" class="f-${f}" value="${row[f] ?? ''}"></td>`).join('')}
+    <td>
+      <div class="row-actions">
+        <button class="save-btn">저장</button>
+        <button class="delete-btn">삭제</button>
+      </div>
+      <p class="row-msg"></p>
+    </td>
+  `;
+
+  tr.querySelector('.save-btn').addEventListener('click', async () => {
+    const msg = tr.querySelector('.row-msg');
+    msg.textContent = '';
+    msg.className = 'row-msg';
+
+    const payload = { room_name: tr.querySelector('.f-room_name').value.trim() };
+    FIELDS.forEach((f) => {
+      const val = tr.querySelector(`.f-${f}`).value;
+      payload[f] = val === '' ? null : Number(val);
+    });
+
+    try {
+      const res = await fetch(`/booking/api/admin/price-table/${row.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '저장 실패');
+      msg.textContent = '저장됨';
+      msg.classList.add('ok');
+    } catch (err) {
+      msg.textContent = err.message;
+      msg.classList.add('err');
+    }
+  });
+
+  tr.querySelector('.delete-btn').addEventListener('click', async () => {
+    if (!confirm(`"${row.room_name}" 행을 삭제할까요?`)) return;
+    const res = await fetch(`/booking/api/admin/price-table/${row.id}`, { method: 'DELETE' });
+    if (res.ok) {
+      tr.remove();
+    } else {
+      alert('삭제에 실패했습니다.');
+    }
+  });
+
+  return tr;
+}
+
+async function load() {
+  const res = await fetch('/booking/api/admin/price-table');
+  if (res.status === 401) {
+    location.href = '/booking/admin/login';
+    return;
+  }
+  const rows = await res.json();
+  const tbody = $('#tableBody');
+  tbody.innerHTML = '';
+  rows.forEach((row) => tbody.appendChild(rowTemplate(row)));
+}
+
+$('#addRowBtn').addEventListener('click', async () => {
+  const res = await fetch('/booking/api/admin/price-table', { method: 'POST' });
+  if (!res.ok) {
+    alert('행 추가에 실패했습니다.');
+    return;
+  }
+  const row = await res.json();
+  $('#tableBody').appendChild(rowTemplate(row));
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await fetch('/booking/api/admin/logout', { method: 'POST' });
+  location.href = '/booking/admin/login';
+});
+
+load();
+</script>
+</body>
+</html>

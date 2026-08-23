@@ -151,3 +151,54 @@ drop policy if exists "site photos delete via server" on storage.objects;
 create policy "site photos delete via server"
   on storage.objects for delete
   using (bucket_id = 'site-photos');
+
+-- 홈페이지 "요금 안내" 표 (시즌별 요금은 room 테이블에 없는 별도 항목이라 전용 테이블로 관리)
+create table if not exists price_table_rows (
+  id bigint generated always as identity primary key,
+  room_name text not null,
+  capacity_base integer,
+  capacity_max integer,
+  off_weekday integer,
+  off_weekend integer,
+  peak_weekday integer,
+  peak_weekend integer,
+  superpeak_weekday integer,
+  superpeak_weekend integer,
+  sort_order integer not null default 0
+);
+
+alter table price_table_rows enable row level security;
+
+drop policy if exists "price table publicly readable" on price_table_rows;
+create policy "price table publicly readable"
+  on price_table_rows for select
+  using (true);
+
+drop policy if exists "price table insert via server" on price_table_rows;
+create policy "price table insert via server"
+  on price_table_rows for insert
+  with check (true);
+
+drop policy if exists "price table update via server" on price_table_rows;
+create policy "price table update via server"
+  on price_table_rows for update
+  using (true) with check (true);
+
+drop policy if exists "price table delete via server" on price_table_rows;
+create policy "price table delete via server"
+  on price_table_rows for delete
+  using (true);
+
+-- 기존 홈페이지에 있던 값 그대로 초기 등록 (이미 데이터가 있으면 건너뜀)
+insert into price_table_rows
+  (room_name, capacity_base, capacity_max, off_weekday, off_weekend, peak_weekday, peak_weekend, superpeak_weekday, superpeak_weekend, sort_order)
+select * from (values
+  ('금성', 2, 4, 80000, 100000, 120000, 130000, 150000, 150000, 1),
+  ('목성', 2, 4, 100000, 110000, 120000, 130000, 150000, 150000, 2),
+  ('은하수', 6, 8, 160000, 200000, 300000, 300000, 350000, 350000, 3),
+  ('오리온', 6, 8, 150000, 160000, 200000, 250000, 300000, 300000, 4),
+  ('시리우스', 5, 7, 150000, 160000, 200000, 250000, 300000, 300000, 5),
+  ('베텔게우스', 6, 8, 150000, 160000, 200000, 250000, 300000, 300000, 6),
+  ('평상', 8, 10, 60000, 60000, 80000, 80000, 100000, 100000, 7)
+) as seed(room_name, capacity_base, capacity_max, off_weekday, off_weekend, peak_weekday, peak_weekend, superpeak_weekday, superpeak_weekend, sort_order)
+where not exists (select 1 from price_table_rows);
